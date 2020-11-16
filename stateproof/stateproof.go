@@ -6,14 +6,14 @@ import (
 	"crypto/sha512"
 	"crypto/x509"
 	"encoding/hex"
-	"errors"
+	"github.com/limechain/hedera-state-proof-verifier-go/errors"
 	"github.com/limechain/hedera-state-proof-verifier-go/parser"
 	"github.com/limechain/hedera-state-proof-verifier-go/types"
 	"math"
 	"regexp"
 )
 
-func ValidateStateProof(txId string, payload []byte) (bool, error) {
+func VerifyStateProof(txId string, payload []byte) (bool, error) {
 	regex := regexp.MustCompile("[.@\\-]")
 	txId = regex.ReplaceAllString(txId, "_")
 
@@ -38,7 +38,7 @@ func ValidateStateProof(txId string, payload []byte) (bool, error) {
 	}
 
 	if txMap[txId] == nil {
-		return false, errors.New("TX not found")
+		return false, errors.ErrorTransactionNotFound
 	}
 
 	err = performStateProof(nodeIdPairs, signatureFiles, recordFileHash)
@@ -54,8 +54,9 @@ func performStateProof(nodeIdPubKeyPairs map[string]string, signatureFiles map[s
 	if err != nil {
 		return err
 	}
+
 	if hash != res {
-		return errors.New("fail")
+		return errors.ErrorHashesNotMatch
 	}
 	return nil
 }
@@ -76,7 +77,7 @@ func verifySignatures(nodeIdPubKeyPairs map[string]string, signatureFiles map[st
 				consensusHash = hexHash
 			}
 		} else {
-			return "", errors.New("Failed to validate")
+			return "", errors.ErrorVerifySignature
 		}
 	}
 

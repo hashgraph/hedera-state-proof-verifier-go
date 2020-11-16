@@ -20,7 +20,7 @@ func main() {
     ]
 }`)
 
-	res, err := stateproof.ValidateStateProof("0.0.1893-1605177623-307000000", bytes)
+	res, err := stateproof.VerifyStateProof("0.0.1893-1605177623-307000000", bytes)
 	if err != nil {
 		panic(err)
 	}

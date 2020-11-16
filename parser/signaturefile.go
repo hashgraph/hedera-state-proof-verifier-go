@@ -3,8 +3,7 @@ package parser
 import (
 	"encoding/base64"
 	"encoding/binary"
-	"errors"
-	"fmt"
+	"github.com/limechain/hedera-state-proof-verifier-go/errors"
 	"github.com/limechain/hedera-state-proof-verifier-go/types"
 )
 
@@ -34,11 +33,14 @@ func parseSignatureFile(bytesSigFile []byte) (*types.SignatureFile, error) {
 	for index < len(bytesSigFile) {
 		typeDel := bytesSigFile[index]
 		index += 1
+
 		switch typeDel {
+		// hash
 		case 4:
 			hash = bytesSigFile[index : index+fileHashSize]
 			index += fileHashSize
 			break
+		// signature
 		case 3:
 			signatureLength := int(binary.BigEndian.Uint32(bytesSigFile[index:]))
 			index += 4
@@ -46,7 +48,7 @@ func parseSignatureFile(bytesSigFile []byte) (*types.SignatureFile, error) {
 			index += signatureLength
 			break
 		default:
-			return nil, errors.New(fmt.Sprintf(`Unexpected type delimeter %d in signature file`, typeDel))
+			return nil, errors.ErrorUnexpectedTypeDelimiter
 		}
 	}
 	return &types.SignatureFile{

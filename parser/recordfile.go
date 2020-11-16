@@ -6,10 +6,10 @@ import (
 	"encoding/base64"
 	"encoding/binary"
 	"encoding/hex"
-	"errors"
 	"fmt"
 	"github.com/golang/protobuf/proto"
 	hederaproto "github.com/hashgraph/hedera-sdk-go/proto"
+	"github.com/limechain/hedera-state-proof-verifier-go/errors"
 )
 
 const (
@@ -25,51 +25,64 @@ func ParseRecordFile(recordFile string) (map[string]*hederaproto.TransactionID, 
 	if err != nil {
 		return nil, "", err
 	}
+
 	var result []byte
 	var contents []byte
 	recordFileWriter := bytes.NewBuffer(result)
 	contentsWriter := bytes.NewBuffer(contents)
+
 	index := 0
+	// read record file format version
 	version := int(binary.BigEndian.Uint32(bytesRf[index:]))
 	recordFileWriter.Write(bytesRf[index : index+4])
 	index += 4
+
 	if version >= 2 {
 		contentsWriter = bytes.NewBuffer(result)
 	}
+
 	recordFileWriter.Write(bytesRf[index : index+4])
 	index += 4
+
 	for index < len(bytesRf) {
 		typeDel := bytesRf[index]
 		index += 1
 		switch typeDel {
+		// RECORD_TYPE_PREV_HASH
 		case 1:
 			recordFileWriter.Write([]byte{typeDel})
 			prevHash := bytesRf[index : index+fileHashSize]
 			recordFileWriter.Write(prevHash)
 			index += fileHashSize
 			break
+		// RECORD_TYPE_RECORD
 		case 2:
 			contentsWriter.Write([]byte{typeDel})
 			contentsWriter.Write(bytesRf[index : index+4])
+			// transaction raw bytes
 			txRawBytesLength := int(binary.BigEndian.Uint32(bytesRf[index:]))
 			index += 4
+
 			contentsWriter.Write(bytesRf[index : index+txRawBytesLength])
 			index += txRawBytesLength
 
 			contentsWriter.Write(bytesRf[index : index+4])
+			// record raw bytes
 			recordRawBytesLength := int(binary.BigEndian.Uint32(bytesRf[index:]))
 			index += 4
 
+			// record raw buffer
 			transactionRecordRawBuffer := bytesRf[index : index+recordRawBytesLength]
 			contentsWriter.Write(transactionRecordRawBuffer)
 			index += recordRawBytesLength
+
 			err = parseTransaction(transactionRecordRawBuffer)
 			if err != nil {
 				return nil, "", err
 			}
 			break
 		default:
-			return nil, "", errors.New(fmt.Sprintf(`Unexpected type delimeter %d`, typeDel))
+			return nil, "", errors.ErrorUnexpectedTypeDelimiter
 		}
 	}
 
@@ -80,6 +93,7 @@ func ParseRecordFile(recordFile string) (map[string]*hederaproto.TransactionID, 
 
 	hash := sha512.Sum384(recordFileWriter.Bytes())
 
+	// set record file hash
 	recordFileHash := hex.EncodeToString(hash[:])
 
 	return txMap, recordFileHash, nil
@@ -91,6 +105,7 @@ func parseTransaction(txRecordRawBuffer []byte) error {
 	if err != nil {
 		return err
 	}
+
 	transactionReceipt := tr.GetReceipt()
 	transactionStatus := transactionReceipt.GetStatus()
 
