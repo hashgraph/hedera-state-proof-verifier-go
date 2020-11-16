@@ -1,4 +1,4 @@
-package entityid
+package decoder
 
 import (
 	"fmt"

@@ -4,7 +4,7 @@ import (
 	"encoding/base64"
 	"github.com/golang/protobuf/proto"
 	hederaproto "github.com/hashgraph/hedera-sdk-go/proto"
-	"github.com/limechain/hedera-state-proof-verifier-go/entityid"
+	"github.com/limechain/hedera-state-proof-verifier-go/internal/decoder"
 )
 
 func ParseAddressBooks(addressBooks []string) (map[string]string, error) {
@@ -26,7 +26,7 @@ func ParseAddressBooks(addressBooks []string) (map[string]string, error) {
 			if nodeAddress.NodeId == 0 {
 				nodeId = string(nodeAddress.Memo)
 			} else {
-				res, err := entityid.Decode(nodeAddress.NodeId)
+				res, err := decoder.Decode(nodeAddress.NodeId)
 				if err != nil {
 					return nil, err
 				}

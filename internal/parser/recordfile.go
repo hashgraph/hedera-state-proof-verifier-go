@@ -9,7 +9,7 @@ import (
 	"fmt"
 	"github.com/golang/protobuf/proto"
 	hederaproto "github.com/hashgraph/hedera-sdk-go/proto"
-	"github.com/limechain/hedera-state-proof-verifier-go/errors"
+	"github.com/limechain/hedera-state-proof-verifier-go/internal/errors"
 )
 
 const (
