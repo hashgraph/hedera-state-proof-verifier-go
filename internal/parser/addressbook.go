@@ -4,7 +4,6 @@ import (
 	"encoding/base64"
 	"github.com/golang/protobuf/proto"
 	hederaproto "github.com/hashgraph/hedera-sdk-go/proto"
-	"github.com/limechain/hedera-state-proof-verifier-go/internal/decoder"
 )
 
 func ParseAddressBooks(addressBooks []string) (map[string]string, error) {
@@ -21,17 +20,7 @@ func ParseAddressBooks(addressBooks []string) (map[string]string, error) {
 		}
 
 		for _, nodeAddress := range ab.NodeAddress {
-			var nodeId string
-			// For some address books node id does not contain node id. In those cases retrieve id from memo field
-			if nodeAddress.NodeId == 0 {
-				nodeId = string(nodeAddress.Memo)
-			} else {
-				res, err := decoder.Decode(nodeAddress.NodeId)
-				if err != nil {
-					return nil, err
-				}
-				nodeId = res
-			}
+			nodeId := string(nodeAddress.Memo)
 			result[nodeId] = nodeAddress.RSA_PubKey
 		}
 	}
