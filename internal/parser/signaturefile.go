@@ -1,10 +1,12 @@
 package parser
 
 import (
+	"bytes"
 	"encoding/base64"
 	"encoding/binary"
 	"github.com/limechain/hedera-state-proof-verifier-go/internal/errors"
 	"github.com/limechain/hedera-state-proof-verifier-go/internal/types"
+	"io"
 )
 
 func ParseSignatureFiles(signatureFiles map[string]string) (map[string]*types.SignatureFile, error) {
@@ -27,25 +29,43 @@ func ParseSignatureFiles(signatureFiles map[string]string) (map[string]*types.Si
 }
 
 func parseSignatureFile(bytesSigFile []byte) (*types.SignatureFile, error) {
-	index := 0
-	var hash []byte
+	reader := bytes.NewReader(bytesSigFile)
+	hash := make([]byte, fileHashSize)
 	var signature []byte
-	for index < len(bytesSigFile) {
-		typeDel := bytesSigFile[index]
-		index += 1
+
+	for {
+		typeDel, err := reader.ReadByte()
+		if err != nil {
+			if err == io.EOF {
+				break
+			}
+			return nil, err
+		}
 
 		switch typeDel {
 		// hash
 		case 4:
-			hash = bytesSigFile[index : index+fileHashSize]
-			index += fileHashSize
+			_, err = reader.Read(hash)
+			if err != nil {
+				return nil, err
+			}
+
 			break
 		// signature
 		case 3:
-			signatureLength := int(binary.BigEndian.Uint32(bytesSigFile[index:]))
-			index += 4
-			signature = bytesSigFile[index : index+signatureLength]
-			index += signatureLength
+			sigLength := make([]byte, 4)
+			err = binary.Read(reader, binary.BigEndian, sigLength)
+			if err != nil {
+				return nil, err
+			}
+
+			sig := make([]byte, binary.BigEndian.Uint32(sigLength))
+			_, err = reader.Read(sig)
+			if err != nil {
+				return nil, err
+			}
+
+			signature = sig
 			break
 		default:
 			return nil, errors.ErrorUnexpectedTypeDelimiter

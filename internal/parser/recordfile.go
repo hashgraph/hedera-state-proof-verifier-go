@@ -10,6 +10,7 @@ import (
 	"github.com/golang/protobuf/proto"
 	hederaproto "github.com/hashgraph/hedera-sdk-go/proto"
 	"github.com/limechain/hedera-state-proof-verifier-go/internal/errors"
+	"io"
 )
 
 const (
@@ -28,55 +29,88 @@ func ParseRecordFile(recordFile string) (map[string]*hederaproto.TransactionID, 
 
 	var result []byte
 	var contents []byte
+	reader := bytes.NewReader(bytesRf)
 	recordFileWriter := bytes.NewBuffer(result)
 	contentsWriter := bytes.NewBuffer(contents)
 
-	index := 0
+	intBytes := make([]byte, 4)
 	// read record file format version
-	version := int(binary.BigEndian.Uint32(bytesRf[index:]))
-	recordFileWriter.Write(bytesRf[index : index+4])
-	index += 4
+	err = binary.Read(reader, binary.BigEndian, intBytes)
+	if err != nil {
+		return nil, "", err
+	}
+	recordFileWriter.Write(intBytes)
 
+	version := binary.BigEndian.Uint32(intBytes)
 	if version >= 2 {
 		contentsWriter = bytes.NewBuffer(result)
 	}
 
-	recordFileWriter.Write(bytesRf[index : index+4])
-	index += 4
+	// version
+	err = binary.Read(reader, binary.BigEndian, intBytes)
+	if err != nil {
+		return nil, "", err
+	}
+	recordFileWriter.Write(intBytes)
 
-	for index < len(bytesRf) {
-		typeDel := bytesRf[index]
-		index += 1
+	for {
+		typeDel, err := reader.ReadByte()
+		if err != nil {
+			if err == io.EOF {
+				break
+			}
+			return nil, "", err
+		}
+
 		switch typeDel {
 		// RECORD_TYPE_PREV_HASH
 		case 1:
 			recordFileWriter.Write([]byte{typeDel})
-			prevHash := bytesRf[index : index+fileHashSize]
-			recordFileWriter.Write(prevHash)
-			index += fileHashSize
+			fileHashBytes := make([]byte, fileHashSize)
+			_, err = reader.Read(fileHashBytes)
+			if err != nil {
+				return nil, "", err
+			}
+
+			recordFileWriter.Write(fileHashBytes)
 			break
 		// RECORD_TYPE_RECORD
 		case 2:
 			contentsWriter.Write([]byte{typeDel})
-			contentsWriter.Write(bytesRf[index : index+4])
+
 			// transaction raw bytes
-			txRawBytesLength := int(binary.BigEndian.Uint32(bytesRf[index:]))
-			index += 4
+			err = binary.Read(reader, binary.BigEndian, intBytes)
+			if err != nil {
+				return nil, "", err
+			}
+			contentsWriter.Write(intBytes)
 
-			contentsWriter.Write(bytesRf[index : index+txRawBytesLength])
-			index += txRawBytesLength
+			txRawLength := binary.BigEndian.Uint32(intBytes)
+			txRaw := make([]byte, txRawLength)
+			_, err = reader.Read(txRaw)
+			if err != nil {
+				return nil, "", err
+			}
+			contentsWriter.Write(txRaw)
 
-			contentsWriter.Write(bytesRf[index : index+4])
-			// record raw bytes
-			recordRawBytesLength := int(binary.BigEndian.Uint32(bytesRf[index:]))
-			index += 4
+			// tx record raw bytes
+			err = binary.Read(reader, binary.BigEndian, intBytes)
+			if err != nil {
+				return nil, "", err
+			}
+			contentsWriter.Write(intBytes)
 
-			// record raw buffer
-			transactionRecordRawBuffer := bytesRf[index : index+recordRawBytesLength]
-			contentsWriter.Write(transactionRecordRawBuffer)
-			index += recordRawBytesLength
+			recordRawLength := binary.BigEndian.Uint32(intBytes)
 
-			err = parseTransaction(transactionRecordRawBuffer)
+			// tx record raw buffer
+			txRecordRaw := make([]byte, recordRawLength)
+			_, err = reader.Read(txRecordRaw)
+			if err != nil {
+				return nil, "", err
+			}
+			contentsWriter.Write(txRecordRaw)
+
+			err = parseTransaction(txRecordRaw)
 			if err != nil {
 				return nil, "", err
 			}
