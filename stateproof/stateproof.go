@@ -13,7 +13,7 @@ import (
 	"regexp"
 )
 
-func VerifyStateProof(txId string, payload []byte) (bool, error) {
+func Verify(txId string, payload []byte) (bool, error) {
 	regex := regexp.MustCompile("[.@\\-]")
 	txId = regex.ReplaceAllString(txId, "_")
 

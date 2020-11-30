@@ -22,7 +22,7 @@ func ParseAddressBooks(addressBooks []string) (map[string]string, error) {
 
 		for _, nodeAddress := range ab.NodeAddress {
 			var nodeId string
-			// For some address books node id does nt contain node id. In those cases retrieve id from memo field
+			// For some address books node id does not contain node id. In those cases retrieve id from memo field
 			if nodeAddress.NodeId == 0 {
 				nodeId = string(nodeAddress.Memo)
 			} else {
