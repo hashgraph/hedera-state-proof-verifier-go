@@ -67,17 +67,22 @@ func verifySignatures(nodeIdPubKeyPairs map[string]string, signatureFiles map[st
 	maxHashCount := 0
 
 	for nodeId, sigFile := range signatureFiles {
-		if verifySignature(nodeIdPubKeyPairs[nodeId], sigFile.Hash, sigFile.Signature) {
-			hexHash := hex.EncodeToString(sigFile.Hash)
-			verifiedSigs[hexHash] = append(verifiedSigs[hexHash], nodeId)
-
-			nodesCount := len(verifiedSigs[hexHash])
-			if nodesCount > 1 && nodesCount > maxHashCount {
-				maxHashCount = nodesCount
-				consensusHash = hexHash
-			}
-		} else {
+		pubKey := nodeIdPubKeyPairs[nodeId]
+		if !verifySignature(pubKey, sigFile.Hash, sigFile.Signature) {
 			return "", errors.ErrorVerifySignature
+		}
+
+		if sigFile.MetadataHash != nil && !verifySignature(pubKey, sigFile.MetadataHash, sigFile.MetadataSignature) {
+			return "", errors.ErrorVerifyMetadataSignature
+		}
+
+		hexHash := hex.EncodeToString(sigFile.Hash)
+		verifiedSigs[hexHash] = append(verifiedSigs[hexHash], nodeId)
+
+		nodesCount := len(verifiedSigs[hexHash])
+		if nodesCount > 1 && nodesCount > maxHashCount {
+			maxHashCount = nodesCount
+			consensusHash = hexHash
 		}
 	}
 

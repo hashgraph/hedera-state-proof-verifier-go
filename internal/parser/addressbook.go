@@ -13,6 +13,7 @@ func ParseAddressBooks(addressBooks []string) (map[string]string, error) {
 		if err != nil {
 			return nil, err
 		}
+
 		var ab hederaproto.NodeAddressBook
 		err = proto.Unmarshal(bytes, &ab)
 		if err != nil {
