@@ -1,4 +1,18 @@
-# Hedera State Proof Alpha in Go
+# Hedera Verify State Proof in Go
 
-Cryptographically prove a transaction is valid on Hedera Network.
-It is the interim solution until [full state proof](https://www.hedera.com/blog/state-proofs-on-hedera) is implemented.
+Cryptographically prove a transaction is valid on Hedera Network in Go.
+Based on [official documentation](https://docs.hedera.com/guides/docs/record-and-event-stream-file-formats).
+
+# Install
+
+```
+go get https://github.com/LimeChain/hedera-state-proof-verifier-go
+```
+
+# How to use?
+
+```go
+import "github.com/limechain/hedera-state-proof-verifier-go/stateproof"
+
+verified, err := stateproof.Verify(txnID, stateProof)
+```
