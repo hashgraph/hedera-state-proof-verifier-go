@@ -18,7 +18,19 @@ const (
 )
 
 const (
-	RecordFileMarker = 2
+	RecordFileMarker      = 2
+	SignatureFileV2Marker = 3
+)
+
+const (
+	RecordFileFormatV1 = 1
+	RecordFileFormatV2 = 2
+	RecordFileFormatV5 = 5
+)
+
+const (
+	SignatureFileFormatV4 = 4
+	SignatureFileFormatV5 = 5
 )
 
 const (

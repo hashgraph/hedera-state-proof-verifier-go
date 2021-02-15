@@ -3,24 +3,25 @@ package reader
 import (
 	"bytes"
 	"encoding/binary"
-	"errors"
-	"fmt"
 	"github.com/limechain/hedera-state-proof-verifier-go/internal/constants"
+	"github.com/limechain/hedera-state-proof-verifier-go/internal/errors"
 )
 
-func LengthAndBytes(buffer *bytes.Reader, minLength, maxLength int, hasChecksum bool) (*uint32, []byte, error) {
+func LengthAndBytes(buffer *bytes.Reader, minLength, maxLength uint32, hasChecksum bool) (*uint32, []byte, error) {
 	var length uint32
 	offset := constants.IntSize
+
 	err := binary.Read(buffer, binary.BigEndian, &length)
 	if err != nil {
 		return nil, nil, err
 	}
+
 	if minLength == maxLength {
-		if length != uint32(minLength) {
-			return nil, nil, errors.New(fmt.Sprintf("Error reading length and bytes, expect length %d, got %d", minLength, length))
+		if length != minLength {
+			return nil, nil, errors.ErrorInvalidLength
 		}
-	} else if length < uint32(minLength) || length > uint32(maxLength) {
-		return nil, nil, errors.New(fmt.Sprintf("Error reading length and bytes, expect length %d within [%d, %d]", length, minLength, maxLength))
+	} else if length < minLength || length > maxLength {
+		return nil, nil, errors.ErrorInvalidLength
 	}
 
 	if hasChecksum {
@@ -29,10 +30,12 @@ func LengthAndBytes(buffer *bytes.Reader, minLength, maxLength int, hasChecksum 
 		if err != nil {
 			return nil, nil, err
 		}
+
 		expected := constants.SimpleSum - length
 		offset += constants.IntSize
+
 		if checkSum != expected {
-			return nil, nil, errors.New(fmt.Sprintf("Error reading length and bytes, expect checksum %d to be %d", checkSum, expected))
+			return nil, nil, errors.ErrorInvalidChecksum
 		}
 	}
 	finalLength := uint32(offset) + length

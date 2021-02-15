@@ -30,24 +30,28 @@ func ParseRecordFile(recordFile string) (map[string]*hederaproto.TransactionID, 
 	version := binary.BigEndian.Uint32(intBytes)
 
 	switch version {
-	case 1:
-	case 2:
+	case constants.RecordFileFormatV1:
+	case constants.RecordFileFormatV2:
 		hash, err := types.CalculatePreV5FileHash(bytesReader, version)
 		if err != nil {
 			return nil, "", err
 		}
 		bytesReader.Reset(bytesRf)
+
 		mapResult, err := types.NewPreV5RecordFile(bytesReader)
 		if err != nil {
 			return nil, "", err
 		}
+
 		return mapResult, hash, err
-	case 5:
+	case constants.RecordFileFormatV5:
 		hash, err := types.CalculateV5FileHash(bytesReader)
 		if err != nil {
 			return nil, "", err
 		}
+
 		bytesReader.Reset(bytesRf)
+
 		mapResult, err := types.NewV5RecordFile(bytesReader)
 		if err != nil {
 			return nil, "", err

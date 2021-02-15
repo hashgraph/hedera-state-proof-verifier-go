@@ -3,6 +3,7 @@ package parser
 import (
 	"bytes"
 	"encoding/base64"
+	"github.com/limechain/hedera-state-proof-verifier-go/internal/constants"
 	"github.com/limechain/hedera-state-proof-verifier-go/internal/errors"
 	"github.com/limechain/hedera-state-proof-verifier-go/internal/types"
 )
@@ -29,15 +30,15 @@ func ParseSignatureFiles(signatureFiles map[string]string) (map[string]*types.Si
 func parseSignatureFile(bytesSigFile []byte) (*types.SignatureFile, error) {
 	reader := bytes.NewReader(bytesSigFile)
 
-	typeDel, err := reader.ReadByte()
+	fileFormatVersion, err := reader.ReadByte()
 	if err != nil {
 		return nil, err
 	}
 
-	switch typeDel {
-	case 4:
+	switch fileFormatVersion {
+	case constants.SignatureFileFormatV4:
 		return types.NewV2SignatureFile(reader)
-	case 5:
+	case constants.SignatureFileFormatV5:
 		return types.NewV5SignatureFile(reader)
 	default:
 		return nil, errors.ErrorUnexpectedTypeDelimiter
