@@ -31,18 +31,19 @@ func newRecord(buffer *bytes.Reader) (*record, error) {
 	if err != nil {
 		return nil, err
 	}
-	recordFile := &record{
+
+	record := &record{
 		Stream: *stream,
 	}
 
-	bodyLength, err := recordFile.readBody(buffer)
+	bodyLength, err := record.readBody(buffer)
 	if err != nil {
 		return nil, err
 	}
 
-	recordFile.BodyLength = *bodyLength + stream.BodyLength
+	record.BodyLength = *bodyLength + stream.BodyLength
 
-	return recordFile, nil
+	return record, nil
 }
 
 func (r *record) readBody(buffer *bytes.Reader) (*uint32, error) {
