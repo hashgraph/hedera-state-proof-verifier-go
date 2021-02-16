@@ -23,6 +23,7 @@ type record struct {
 
 type RecordFile struct {
 	Hash            string
+	MetadataHash    string
 	TransactionsMap map[string]*hederaproto.TransactionID
 }
 
@@ -198,6 +199,10 @@ func NewV5RecordFile(buffer *bytes.Reader) (*RecordFile, error) {
 	}
 
 	metadata = append(metadata, hashBytes...)
+
+	metadataHash := sha512.Sum384(metadata)
+
+	recordFile.MetadataHash = hex.EncodeToString(metadataHash[:])
 
 	return recordFile, nil
 }
