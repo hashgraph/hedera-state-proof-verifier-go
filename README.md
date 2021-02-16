@@ -16,3 +16,9 @@ import "github.com/limechain/hedera-state-proof-verifier-go/stateproof"
 
 verified, err := stateproof.Verify(txnID, stateProof)
 ```
+
+# Examples
+
+[V2 Record Stream State Proof Verification](examples/v2/main.go)
+
+[V5 Record Stream State Proof Verification](examples/v5/main.go)

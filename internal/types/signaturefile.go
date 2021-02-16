@@ -101,7 +101,7 @@ func NewV5SignatureFile(buffer *bytes.Reader) (*SignatureFile, error) {
 	}
 
 	// hash of the entire corresponding stream file
-	hashStruct, err := NewHashStruct(buffer)
+	hash, err := NewHash(buffer)
 	if err != nil {
 		return nil, err
 	}
@@ -113,7 +113,7 @@ func NewV5SignatureFile(buffer *bytes.Reader) (*SignatureFile, error) {
 	}
 
 	// metadata hash of the corresponding stream file
-	metadataHash, err := NewHashStruct(buffer)
+	metadataHash, err := NewHash(buffer)
 	if err != nil {
 		return nil, err
 	}
@@ -130,7 +130,7 @@ func NewV5SignatureFile(buffer *bytes.Reader) (*SignatureFile, error) {
 
 	return &SignatureFile{
 		Stream:            Stream{},
-		Hash:              hashStruct.Hash,
+		Hash:              hash.Hash,
 		Signature:         signatureFile.Signature,
 		Version:           constants.SignatureFileFormatV5,
 		MetadataHash:      metadataHash.Hash,

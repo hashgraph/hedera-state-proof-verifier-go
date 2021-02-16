@@ -32,16 +32,16 @@ func Verify(txId string, payload []byte) (bool, error) {
 		return false, err
 	}
 
-	txMap, recordFileHash, err := parser.ParseRecordFile(stateProof.RecordFile)
+	recordFile, err := parser.ParseRecordFile(stateProof.RecordFile)
 	if err != nil {
 		return false, err
 	}
 
-	if txMap[txId] == nil {
+	if recordFile.TransactionsMap[txId] == nil {
 		return false, errors.ErrorTransactionNotFound
 	}
 
-	err = performStateProof(nodeIdPairs, signatureFiles, recordFileHash)
+	err = performStateProof(nodeIdPairs, signatureFiles, recordFile.Hash)
 	if err != nil {
 		return false, err
 	}

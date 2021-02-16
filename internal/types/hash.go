@@ -7,33 +7,34 @@ import (
 	"github.com/limechain/hedera-state-proof-verifier-go/internal/reader"
 )
 
-type HashStruct struct {
+type Hash struct {
 	Stream
 	BodyLength uint32
 	DigestType []byte
 	Hash       []byte
 }
 
-func NewHashStruct(buffer *bytes.Reader) (*HashStruct, error) {
+func NewHash(buffer *bytes.Reader) (*Hash, error) {
 	stream, err := NewStream(buffer)
 	if err != nil {
 		return nil, err
 	}
-	hashStruct := &HashStruct{
+
+	hash := &Hash{
 		Stream: *stream,
 	}
 
-	bodyLength, err := hashStruct.readBody(buffer)
+	bodyLength, err := hash.readBody(buffer)
 	if err != nil {
 		return nil, err
 	}
 
-	hashStruct.BodyLength = *bodyLength + stream.BodyLength
+	hash.BodyLength = *bodyLength + stream.BodyLength
 
-	return hashStruct, nil
+	return hash, nil
 }
 
-func (h *HashStruct) readBody(buffer *bytes.Reader) (*uint32, error) {
+func (h *Hash) readBody(buffer *bytes.Reader) (*uint32, error) {
 	h.DigestType = make([]byte, constants.IntSize)
 	err := binary.Read(buffer, binary.BigEndian, h.DigestType)
 	if err != nil {

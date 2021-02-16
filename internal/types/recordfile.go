@@ -14,37 +14,38 @@ import (
 	"io"
 )
 
-var (
-	txMap = make(map[string]*hederaproto.TransactionID)
-)
-
-type RecordFileStruct struct {
+type record struct {
 	Stream
 	BodyLength  uint32
 	Record      []byte
 	Transaction []byte
 }
 
-func NewRecordFileStruct(buffer *bytes.Reader) (*RecordFileStruct, error) {
+type RecordFile struct {
+	Hash            string
+	TransactionsMap map[string]*hederaproto.TransactionID
+}
+
+func newRecord(buffer *bytes.Reader) (*record, error) {
 	stream, err := NewStream(buffer)
 	if err != nil {
 		return nil, err
 	}
-	recordFileStruct := &RecordFileStruct{
+	recordFile := &record{
 		Stream: *stream,
 	}
 
-	bodyLength, err := recordFileStruct.readBody(buffer)
+	bodyLength, err := recordFile.readBody(buffer)
 	if err != nil {
 		return nil, err
 	}
 
-	recordFileStruct.BodyLength = *bodyLength + stream.BodyLength
+	recordFile.BodyLength = *bodyLength + stream.BodyLength
 
-	return recordFileStruct, nil
+	return recordFile, nil
 }
 
-func (rfs *RecordFileStruct) readBody(buffer *bytes.Reader) (*uint32, error) {
+func (r *record) readBody(buffer *bytes.Reader) (*uint32, error) {
 	recordLength, recordBytes, err := reader.LengthAndBytes(buffer, constants.ByteSize, constants.MaxRecordLength, false)
 	if err != nil {
 		return nil, err
@@ -55,19 +56,23 @@ func (rfs *RecordFileStruct) readBody(buffer *bytes.Reader) (*uint32, error) {
 		return nil, err
 	}
 
-	rfs.Record = recordBytes
-	rfs.Transaction = transactionBytes
+	r.Record = recordBytes
+	r.Transaction = transactionBytes
 
 	totalLength := *recordLength + *transactionLength
 
 	return &totalLength, nil
 }
 
-func NewPreV5RecordFile(buffer *bytes.Reader) (map[string]*hederaproto.TransactionID, error) {
+func NewPreV5RecordFile(buffer *bytes.Reader) (*RecordFile, error) {
 	bytesToRead := make([]byte, constants.PreV5HeaderLength)
 	err := binary.Read(buffer, binary.BigEndian, bytesToRead)
 	if err != nil {
 		return nil, err
+	}
+
+	recordFile := &RecordFile{
+		TransactionsMap: make(map[string]*hederaproto.TransactionID),
 	}
 
 	for buffer.Len() != 0 {
@@ -88,13 +93,13 @@ func NewPreV5RecordFile(buffer *bytes.Reader) (map[string]*hederaproto.Transacti
 			return nil, err
 		}
 
-		err = mapSuccessfulTransactions(recordBytes)
+		err = mapSuccessfulTransactions(recordFile.TransactionsMap, recordBytes)
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	return txMap, nil
+	return recordFile, nil
 }
 
 func CalculatePreV5FileHash(buffer *bytes.Reader, version uint32) (string, error) {
@@ -112,20 +117,23 @@ func CalculatePreV5FileHash(buffer *bytes.Reader, version uint32) (string, error
 		if err != nil {
 			return "", err
 		}
+
 		buf := new(bytes.Buffer)
 		_, err = buf.ReadFrom(buffer)
 		if err != nil {
 			return "", err
 		}
-		hash := sha512.Sum384(buf.Bytes())
-		concat := append(bytesToRead, hash[:]...)
 
-		res := sha512.Sum384(concat)
-		return hex.EncodeToString(res[:]), nil
+		hash := sha512.Sum384(buf.Bytes())
+		content := append(bytesToRead, hash[:]...)
+
+		fileHash := sha512.Sum384(content)
+
+		return hex.EncodeToString(fileHash[:]), nil
 	}
 }
 
-func mapSuccessfulTransactions(txRecordRawBuffer []byte) error {
+func mapSuccessfulTransactions(txMap map[string]*hederaproto.TransactionID, txRecordRawBuffer []byte) error {
 	var tr hederaproto.TransactionRecord
 	err := proto.Unmarshal(txRecordRawBuffer, &tr)
 	if err != nil {
@@ -149,65 +157,93 @@ func mapSuccessfulTransactions(txRecordRawBuffer []byte) error {
 
 func CalculateV5FileHash(buffer *bytes.Reader) (string, error) {
 	buf := new(bytes.Buffer)
+
 	_, err := buf.ReadFrom(buffer)
 	if err != nil {
 		return "", err
 	}
+
 	hash := sha512.Sum384(buf.Bytes())
+
 	return hex.EncodeToString(hash[:]), nil
 }
 
-func NewV5RecordFile(buffer *bytes.Reader) (map[string]*hederaproto.TransactionID, error) {
+// skip the bytes before the start hash object to read a list of stream objects organized as follows:
+//
+// +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+// |  Start Object Running Hash  |
+// +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+// |    Record Stream Object     |
+// +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+// |    ...                      |
+// +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+// |    Record Stream Object     |
+// +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+// |   End Object Running Hash   |
+// +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+//
+// Note the start object running hash and the end object running hash are of the same type HashObject and
+// they have the same classId.
+func NewV5RecordFile(buffer *bytes.Reader) (*RecordFile, error) {
 	var metadata []byte
 	hashOffset := make([]byte, constants.V5StartHashOffset)
+
 	err := binary.Read(buffer, binary.BigEndian, hashOffset)
 	if err != nil {
 		return nil, err
 	}
 	metadata = append(metadata, hashOffset...)
 
-	hashStruct, err := NewHashStruct(buffer)
+	hash, err := NewHash(buffer)
 	if err != nil {
 		return nil, err
 	}
 
-	_, err = buffer.Seek(-int64(hashStruct.BodyLength), io.SeekCurrent)
+	_, err = buffer.Seek(-int64(hash.BodyLength), io.SeekCurrent)
 	if err != nil {
 		return nil, err
 	}
-	hashStructBytes := make([]byte, hashStruct.BodyLength)
-	err = binary.Read(buffer, binary.BigEndian, hashStructBytes)
-	if err != nil {
-		return nil, err
-	}
-	metadata = append(metadata, hashStructBytes...)
 
+	hashBytes := make([]byte, hash.BodyLength)
+	err = binary.Read(buffer, binary.BigEndian, hashBytes)
+	if err != nil {
+		return nil, err
+	}
+	metadata = append(metadata, hashBytes...)
+
+	recordFile := &RecordFile{
+		TransactionsMap: make(map[string]*hederaproto.TransactionID),
+	}
+
+	// record stream objects are between the start hash object and the end hash object
 	var classId int64
 	for {
 		err := binary.Read(buffer, binary.BigEndian, &classId)
 		if err != nil {
 			return nil, err
 		}
+
 		_, err = buffer.Seek(-constants.LongSize, io.SeekCurrent)
 		if err != nil {
 			return nil, err
 		}
 
-		if classId == hashStruct.ClassId {
+		if classId == hash.ClassId {
 			break
 		}
 
-		recordStruct, err := NewRecordFileStruct(buffer)
+		record, err := newRecord(buffer)
 		if err != nil {
 			return nil, err
 		}
 
-		err = mapSuccessfulTransactions(recordStruct.Record)
+		err = mapSuccessfulTransactions(recordFile.TransactionsMap, record.Record)
 		if err != nil {
 			return nil, err
 		}
 	}
-	finalHashStruct, err := NewHashStruct(buffer)
+
+	endHash, err := NewHash(buffer)
 	if err != nil {
 		return nil, err
 	}
@@ -216,15 +252,17 @@ func NewV5RecordFile(buffer *bytes.Reader) (map[string]*hederaproto.TransactionI
 		return nil, errors.ErrorExtraDataInRecordFile
 	}
 
-	_, err = buffer.Seek(-int64(finalHashStruct.BodyLength), io.SeekCurrent)
+	_, err = buffer.Seek(-int64(endHash.BodyLength), io.SeekCurrent)
 	if err != nil {
 		return nil, err
 	}
-	err = binary.Read(buffer, binary.BigEndian, hashStructBytes)
-	if err != nil {
-		return nil, err
-	}
-	metadata = append(metadata, hashStructBytes...)
 
-	return txMap, nil
+	err = binary.Read(buffer, binary.BigEndian, hashBytes)
+	if err != nil {
+		return nil, err
+	}
+
+	metadata = append(metadata, hashBytes...)
+
+	return recordFile, nil
 }
