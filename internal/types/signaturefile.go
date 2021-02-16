@@ -86,7 +86,6 @@ func NewV2SignatureFile(buffer *bytes.Reader) (*SignatureFile, error) {
 	}
 
 	return &SignatureFile{
-		Stream:    Stream{},
 		Hash:      hash,
 		Signature: signature,
 		Version:   constants.SignatureFileFormatV4,
@@ -129,7 +128,6 @@ func NewV5SignatureFile(buffer *bytes.Reader) (*SignatureFile, error) {
 	}
 
 	return &SignatureFile{
-		Stream:            Stream{},
 		Hash:              hash.Hash,
 		Signature:         signatureFile.Signature,
 		Version:           constants.SignatureFileFormatV5,

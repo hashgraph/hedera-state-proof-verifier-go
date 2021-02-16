@@ -103,72 +103,6 @@ func NewPreV5RecordFile(buffer *bytes.Reader) (*RecordFile, error) {
 	return recordFile, nil
 }
 
-func CalculatePreV5FileHash(buffer *bytes.Reader, version uint32) (string, error) {
-	if version == 1 {
-		buf := new(bytes.Buffer)
-		_, err := buf.ReadFrom(buffer)
-		if err != nil {
-			return "", err
-		}
-		hash := sha512.Sum384(buf.Bytes())
-		return hex.EncodeToString(hash[:]), nil
-	} else {
-		bytesToRead := make([]byte, constants.PreV5HeaderLength)
-		err := binary.Read(buffer, binary.BigEndian, bytesToRead)
-		if err != nil {
-			return "", err
-		}
-
-		buf := new(bytes.Buffer)
-		_, err = buf.ReadFrom(buffer)
-		if err != nil {
-			return "", err
-		}
-
-		hash := sha512.Sum384(buf.Bytes())
-		content := append(bytesToRead, hash[:]...)
-
-		fileHash := sha512.Sum384(content)
-
-		return hex.EncodeToString(fileHash[:]), nil
-	}
-}
-
-func mapSuccessfulTransactions(txMap map[string]*hederaproto.TransactionID, txRecordRawBuffer []byte) error {
-	var tr hederaproto.TransactionRecord
-	err := proto.Unmarshal(txRecordRawBuffer, &tr)
-	if err != nil {
-		return err
-	}
-
-	transactionReceipt := tr.GetReceipt()
-	transactionStatus := transactionReceipt.GetStatus()
-
-	if transactionStatus == hederaproto.ResponseCodeEnum_SUCCESS {
-		txId := tr.GetTransactionID()
-		accId := txId.GetAccountID()
-		txTimestamp := txId.GetTransactionValidStart()
-		nanos := fmt.Sprintf("%09d", txTimestamp.GetNanos())
-		parsedTx := fmt.Sprintf("%d_%d_%d_%d_%s", accId.GetShardNum(), accId.GetRealmNum(), accId.GetAccountNum(), txTimestamp.GetSeconds(), nanos)
-		txMap[parsedTx] = txId
-	}
-
-	return nil
-}
-
-func CalculateV5FileHash(buffer *bytes.Reader) (string, error) {
-	buf := new(bytes.Buffer)
-
-	_, err := buf.ReadFrom(buffer)
-	if err != nil {
-		return "", err
-	}
-
-	hash := sha512.Sum384(buf.Bytes())
-
-	return hex.EncodeToString(hash[:]), nil
-}
-
 // skip the bytes before the start hash object to read a list of stream objects organized as follows:
 //
 // +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
@@ -266,4 +200,70 @@ func NewV5RecordFile(buffer *bytes.Reader) (*RecordFile, error) {
 	metadata = append(metadata, hashBytes...)
 
 	return recordFile, nil
+}
+
+func CalculatePreV5FileHash(buffer *bytes.Reader, version uint32) (string, error) {
+	if version == 1 {
+		buf := new(bytes.Buffer)
+		_, err := buf.ReadFrom(buffer)
+		if err != nil {
+			return "", err
+		}
+		hash := sha512.Sum384(buf.Bytes())
+		return hex.EncodeToString(hash[:]), nil
+	} else {
+		bytesToRead := make([]byte, constants.PreV5HeaderLength)
+		err := binary.Read(buffer, binary.BigEndian, bytesToRead)
+		if err != nil {
+			return "", err
+		}
+
+		buf := new(bytes.Buffer)
+		_, err = buf.ReadFrom(buffer)
+		if err != nil {
+			return "", err
+		}
+
+		hash := sha512.Sum384(buf.Bytes())
+		content := append(bytesToRead, hash[:]...)
+
+		fileHash := sha512.Sum384(content)
+
+		return hex.EncodeToString(fileHash[:]), nil
+	}
+}
+
+func CalculateV5FileHash(buffer *bytes.Reader) (string, error) {
+	buf := new(bytes.Buffer)
+
+	_, err := buf.ReadFrom(buffer)
+	if err != nil {
+		return "", err
+	}
+
+	hash := sha512.Sum384(buf.Bytes())
+
+	return hex.EncodeToString(hash[:]), nil
+}
+
+func mapSuccessfulTransactions(txMap map[string]*hederaproto.TransactionID, txRecordRawBuffer []byte) error {
+	var tr hederaproto.TransactionRecord
+	err := proto.Unmarshal(txRecordRawBuffer, &tr)
+	if err != nil {
+		return err
+	}
+
+	transactionReceipt := tr.GetReceipt()
+	transactionStatus := transactionReceipt.GetStatus()
+
+	if transactionStatus == hederaproto.ResponseCodeEnum_SUCCESS {
+		txId := tr.GetTransactionID()
+		accId := txId.GetAccountID()
+		txTimestamp := txId.GetTransactionValidStart()
+		nanos := fmt.Sprintf("%09d", txTimestamp.GetNanos())
+		parsedTx := fmt.Sprintf("%d_%d_%d_%d_%s", accId.GetShardNum(), accId.GetRealmNum(), accId.GetAccountNum(), txTimestamp.GetSeconds(), nanos)
+		txMap[parsedTx] = txId
+	}
+
+	return nil
 }
