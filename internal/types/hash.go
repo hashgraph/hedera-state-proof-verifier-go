@@ -45,8 +45,8 @@ func (h *Hash) readBody(buffer *bytes.Reader) (*uint32, error) {
 	if err != nil {
 		return nil, err
 	}
-	h.Hash = b
 
+	h.Hash = b
 	finalLength := *length + constants.IntSize
 
 	return &finalLength, nil

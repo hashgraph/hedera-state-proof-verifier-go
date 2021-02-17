@@ -44,7 +44,6 @@ func ParseRecordFile(record string) (*types.RecordFile, error) {
 		}
 
 		recordFile.Hash = hash
-		break
 	case constants.RecordFileFormatV5:
 		hash, err := types.CalculateV5FileHash(bytesReader)
 		if err != nil {
@@ -58,8 +57,6 @@ func ParseRecordFile(record string) (*types.RecordFile, error) {
 			return nil, err
 		}
 		recordFile.Hash = hash
-
-		break
 	default:
 		return nil, errors.ErrorUnexpectedTypeDelimiter
 	}

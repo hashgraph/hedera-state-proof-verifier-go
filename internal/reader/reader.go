@@ -40,6 +40,7 @@ func LengthAndBytes(buffer *bytes.Reader, minLength, maxLength uint32, hasChecks
 	}
 	finalLength := uint32(offset) + length
 	b := make([]byte, length)
+
 	err = binary.Read(buffer, binary.BigEndian, b)
 	if err != nil {
 		return nil, nil, err
