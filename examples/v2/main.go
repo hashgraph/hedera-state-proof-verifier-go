@@ -5,6 +5,7 @@ import (
 	"github.com/limechain/hedera-state-proof-verifier-go/stateproof"
 )
 
+// this example verifies a V2 record stream
 func main() {
 	bytes := []byte(
 		`{
