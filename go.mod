@@ -1,4 +1,4 @@
-module github.com/limechain/hedera-state-proof-verifier-go
+module github.com/hashgraph/hedera-state-proof-verifier-go
 
 go 1.13
 

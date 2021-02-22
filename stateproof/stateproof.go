@@ -6,9 +6,9 @@ import (
 	"crypto/sha512"
 	"crypto/x509"
 	"encoding/hex"
-	"github.com/limechain/hedera-state-proof-verifier-go/internal/errors"
-	"github.com/limechain/hedera-state-proof-verifier-go/internal/parser"
-	"github.com/limechain/hedera-state-proof-verifier-go/internal/types"
+	"github.com/hashgraph/hedera-state-proof-verifier-go/internal/errors"
+	"github.com/hashgraph/hedera-state-proof-verifier-go/internal/parser"
+	"github.com/hashgraph/hedera-state-proof-verifier-go/internal/types"
 	"math"
 	"regexp"
 )

@@ -3,8 +3,8 @@ package reader
 import (
 	"bytes"
 	"encoding/binary"
-	"github.com/limechain/hedera-state-proof-verifier-go/internal/constants"
-	"github.com/limechain/hedera-state-proof-verifier-go/internal/errors"
+	"github.com/hashgraph/hedera-state-proof-verifier-go/internal/constants"
+	"github.com/hashgraph/hedera-state-proof-verifier-go/internal/errors"
 )
 
 func LengthAndBytes(buffer *bytes.Reader, minLength, maxLength uint32, hasChecksum bool) (*uint32, []byte, error) {

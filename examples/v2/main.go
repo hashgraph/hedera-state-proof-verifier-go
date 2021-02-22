@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"github.com/limechain/hedera-state-proof-verifier-go/stateproof"
+	"github.com/hashgraph/hedera-state-proof-verifier-go/stateproof"
 )
 
 // this example verifies a V2 record stream

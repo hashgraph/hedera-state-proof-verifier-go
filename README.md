@@ -9,13 +9,13 @@ Based on [official documentation](https://docs.hedera.com/guides/docs/record-and
 # Install
 
 ```
-go get https://github.com/LimeChain/hedera-state-proof-verifier-go
+go get https://github.com/hashgraph/hedera-state-proof-verifier-go
 ```
 
 # How to use?
 
 ```go
-import "github.com/limechain/hedera-state-proof-verifier-go/stateproof"
+import "github.com/hashgraph/hedera-state-proof-verifier-go/stateproof"
 
 verified, err := stateproof.Verify(txnID, stateProof)
 ```

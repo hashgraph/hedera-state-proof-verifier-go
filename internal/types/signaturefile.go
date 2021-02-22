@@ -3,9 +3,9 @@ package types
 import (
 	"bytes"
 	"encoding/binary"
-	"github.com/limechain/hedera-state-proof-verifier-go/internal/constants"
-	"github.com/limechain/hedera-state-proof-verifier-go/internal/errors"
-	"github.com/limechain/hedera-state-proof-verifier-go/internal/reader"
+	"github.com/hashgraph/hedera-state-proof-verifier-go/internal/constants"
+	"github.com/hashgraph/hedera-state-proof-verifier-go/internal/errors"
+	"github.com/hashgraph/hedera-state-proof-verifier-go/internal/reader"
 )
 
 type SignatureFile struct {

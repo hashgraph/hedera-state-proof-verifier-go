@@ -3,9 +3,9 @@ package parser
 import (
 	"bytes"
 	"encoding/base64"
-	"github.com/limechain/hedera-state-proof-verifier-go/internal/constants"
-	"github.com/limechain/hedera-state-proof-verifier-go/internal/errors"
-	"github.com/limechain/hedera-state-proof-verifier-go/internal/types"
+	"github.com/hashgraph/hedera-state-proof-verifier-go/internal/constants"
+	"github.com/hashgraph/hedera-state-proof-verifier-go/internal/errors"
+	"github.com/hashgraph/hedera-state-proof-verifier-go/internal/types"
 )
 
 func ParseSignatureFiles(signatureFiles map[string]string) (map[string]*types.SignatureFile, error) {
