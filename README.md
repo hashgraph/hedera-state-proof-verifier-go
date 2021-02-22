@@ -1,3 +1,6 @@
+[![GitHub](https://img.shields.io/github/license/hashgraph/hedera-state-proof-verifier-go)](LICENSE)
+[![Discord](https://img.shields.io/badge/discord-join%20chat-blue.svg)](https://hedera.com/discord)
+
 # Hedera Verify State Proof in Go
 
 Cryptographically prove a transaction is valid on Hedera Network in Go.
