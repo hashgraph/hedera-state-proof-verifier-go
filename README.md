@@ -1,18 +1,18 @@
 [![GitHub](https://img.shields.io/github/license/hashgraph/hedera-state-proof-verifier-go)](LICENSE)
 [![Discord](https://img.shields.io/badge/discord-join%20chat-blue.svg)](https://hedera.com/discord)
 
-# Hedera Verify State Proof in Go
+# Hedera State Proof Verifier in Go
 
 Cryptographically prove a transaction is valid on Hedera Network in Go.
 Based on [official documentation](https://docs.hedera.com/guides/docs/record-and-event-stream-file-formats).
 
-# Install
+## Install
 
 ```
 go get https://github.com/hashgraph/hedera-state-proof-verifier-go
 ```
 
-# How to use?
+## How to use?
 
 ```go
 import "github.com/hashgraph/hedera-state-proof-verifier-go/stateproof"
@@ -20,7 +20,7 @@ import "github.com/hashgraph/hedera-state-proof-verifier-go/stateproof"
 verified, err := stateproof.Verify(txnID, stateProof)
 ```
 
-# Examples
+## Examples
 
 [V2 Record Stream State Proof Verification](examples/v2/main.go)
 
