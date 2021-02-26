@@ -2,7 +2,7 @@ package types
 
 import (
 	"encoding/json"
-	"github.com/limechain/hedera-state-proof-verifier-go/internal/errors"
+	"github.com/hashgraph/hedera-state-proof-verifier-go/internal/errors"
 )
 
 type StateProof struct {
@@ -17,10 +17,11 @@ func NewStateProof(payload []byte) (*StateProof, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	if len(stateProof.SignatureFiles) < 2 {
 		return nil, errors.ErrorInvalidSignaturesLength
 	}
-	if stateProof.RecordFile == "" {
+	if len(stateProof.RecordFile) == 0 {
 		return nil, errors.ErrorInvalidRecordFile
 	}
 	if len(stateProof.AddressBooks) < 1 {

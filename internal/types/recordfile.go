@@ -8,9 +8,9 @@ import (
 	"fmt"
 	"github.com/golang/protobuf/proto"
 	hederaproto "github.com/hashgraph/hedera-sdk-go/proto"
-	"github.com/limechain/hedera-state-proof-verifier-go/internal/constants"
-	"github.com/limechain/hedera-state-proof-verifier-go/internal/errors"
-	"github.com/limechain/hedera-state-proof-verifier-go/internal/reader"
+	"github.com/hashgraph/hedera-state-proof-verifier-go/internal/constants"
+	"github.com/hashgraph/hedera-state-proof-verifier-go/internal/errors"
+	"github.com/hashgraph/hedera-state-proof-verifier-go/internal/reader"
 	"io"
 )
 

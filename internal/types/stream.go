@@ -3,7 +3,7 @@ package types
 import (
 	"bytes"
 	"encoding/binary"
-	"github.com/limechain/hedera-state-proof-verifier-go/internal/constants"
+	"github.com/hashgraph/hedera-state-proof-verifier-go/internal/constants"
 )
 
 type Stream struct {
