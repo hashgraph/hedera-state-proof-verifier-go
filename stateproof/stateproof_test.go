@@ -51,7 +51,7 @@ func TestValidV2RecordStream(t *testing.T) {
 	assert.True(t, valid)
 }
 
-func TestV2RecordStreamTransactionNotFound(t *testing.T) {
+func TestVerificationTransactionNotFound(t *testing.T) {
 	valid, err := Verify(missingTxnID, validV2RecordStream)
 	assert.Equal(t, errors.ErrorTransactionNotFound, err)
 	assert.False(t, valid)
