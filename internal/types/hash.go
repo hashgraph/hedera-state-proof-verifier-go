@@ -2,6 +2,7 @@ package types
 
 import (
 	"bytes"
+	"encoding/base64"
 	"encoding/binary"
 	"github.com/hashgraph/hedera-state-proof-verifier-go/internal/constants"
 	"github.com/hashgraph/hedera-state-proof-verifier-go/internal/reader"
@@ -12,6 +13,17 @@ type Hash struct {
 	BodyLength uint32
 	DigestType []byte
 	Hash       []byte
+}
+
+func NewHashFromString(hash string) (*Hash, error) {
+	decoded, err := base64.StdEncoding.DecodeString(hash)
+	if err != nil {
+		return nil, err
+	}
+
+	buffer := bytes.NewReader(decoded)
+
+	return NewHash(buffer)
 }
 
 func NewHash(buffer *bytes.Reader) (*Hash, error) {

@@ -3,7 +3,7 @@ package parser
 import (
 	"encoding/base64"
 	"github.com/golang/protobuf/proto"
-	hederaproto "github.com/hashgraph/hedera-sdk-go/proto"
+	hederaproto "github.com/hashgraph/hedera-sdk-go/v2/proto"
 )
 
 func ParseAddressBooks(addressBooks []string) (map[string]string, error) {

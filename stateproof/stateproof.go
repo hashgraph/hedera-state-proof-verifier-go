@@ -6,6 +6,7 @@ import (
 	"crypto/sha512"
 	"crypto/x509"
 	"encoding/hex"
+	"fmt"
 	"github.com/hashgraph/hedera-state-proof-verifier-go/internal/errors"
 	"github.com/hashgraph/hedera-state-proof-verifier-go/internal/parser"
 	"github.com/hashgraph/hedera-state-proof-verifier-go/internal/types"
@@ -36,12 +37,13 @@ func Verify(txId string, payload []byte) (bool, error) {
 	if err != nil {
 		return false, err
 	}
+	key := fmt.Sprintf("%s-%t", txId, false)
 
-	if recordFile.TransactionsMap[txId] == nil {
+	if recordFile.TransactionsMap[key] == nil {
 		return false, errors.ErrorTransactionNotFound
 	}
 
-	err = performStateProof(nodeIdPairs, signatureFiles, recordFile.Hash)
+	err = performStateProof(nodeIdPairs, signatureFiles, recordFile)
 	if err != nil {
 		return false, err
 	}
@@ -49,31 +51,35 @@ func Verify(txId string, payload []byte) (bool, error) {
 	return true, nil
 }
 
-func performStateProof(nodeIdPubKeyPairs map[string]string, signatureFiles map[string]*types.SignatureFile, hash string) error {
-	res, err := verifySignatures(nodeIdPubKeyPairs, signatureFiles)
+func performStateProof(nodeIdPubKeyPairs map[string]string, signatureFiles map[string]*types.SignatureFile, recordFile *types.RecordFile) error {
+	fileHash, metadataHash, err := verifySignatures(nodeIdPubKeyPairs, signatureFiles)
 	if err != nil {
 		return err
 	}
 
-	if hash != res {
-		return errors.ErrorHashesNotMatch
+	if recordFile.Hash != "" && recordFile.Hash == fileHash {
+		return nil
 	}
-	return nil
+
+	if recordFile.MetadataHash != "" && recordFile.MetadataHash == metadataHash {
+		return nil
+	}
+
+	return errors.ErrorHashesNotMatch
 }
 
-func verifySignatures(nodeIdPubKeyPairs map[string]string, signatureFiles map[string]*types.SignatureFile) (string, error) {
+func verifySignatures(nodeIdPubKeyPairs map[string]string, signatureFiles map[string]*types.SignatureFile) (fileHash, metadataHash string, err error) {
 	verifiedSigs := make(map[string][]string)
-	consensusHash := ""
 	maxHashCount := 0
 
 	for nodeId, sigFile := range signatureFiles {
 		pubKey := nodeIdPubKeyPairs[nodeId]
 		if !verifySignature(pubKey, sigFile.Hash, sigFile.Signature) {
-			return "", errors.ErrorVerifySignature
+			return "", "", errors.ErrorVerifySignature
 		}
 
 		if sigFile.MetadataHash != nil && !verifySignature(pubKey, sigFile.MetadataHash, sigFile.MetadataSignature) {
-			return "", errors.ErrorVerifyMetadataSignature
+			return "", "", errors.ErrorVerifyMetadataSignature
 		}
 
 		hexHash := hex.EncodeToString(sigFile.Hash)
@@ -82,15 +88,16 @@ func verifySignatures(nodeIdPubKeyPairs map[string]string, signatureFiles map[st
 		nodesCount := len(verifiedSigs[hexHash])
 		if nodesCount > 1 && nodesCount > maxHashCount {
 			maxHashCount = nodesCount
-			consensusHash = hexHash
+			fileHash = hexHash
+			metadataHash = hex.EncodeToString(sigFile.MetadataHash)
 		}
 	}
 
 	consensusSigs := int(math.Ceil(float64(len(signatureFiles) / 3)))
 	if maxHashCount >= consensusSigs {
-		return consensusHash, nil
+		return fileHash, metadataHash, nil
 	} else {
-		return "", nil
+		return "", "", nil
 	}
 }
 

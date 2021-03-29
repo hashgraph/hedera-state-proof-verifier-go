@@ -44,3 +44,11 @@ const (
 	// version, hapi version major/minor/patch, object stream version
 	V5StartHashOffset = IntSize + IntSize + IntSize + IntSize + IntSize
 )
+
+type RecordFileType int
+
+const (
+	InvalidRecordFile = iota
+	CompactRecordFile
+	FullRecordFile
+)

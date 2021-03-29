@@ -3,15 +3,17 @@ package types
 import (
 	"bytes"
 	"crypto/sha512"
+	"encoding/base64"
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
 	"github.com/golang/protobuf/proto"
-	hederaproto "github.com/hashgraph/hedera-sdk-go/proto"
+	hederaproto "github.com/hashgraph/hedera-sdk-go/v2/proto"
 	"github.com/hashgraph/hedera-state-proof-verifier-go/internal/constants"
 	"github.com/hashgraph/hedera-state-proof-verifier-go/internal/errors"
 	"github.com/hashgraph/hedera-state-proof-verifier-go/internal/reader"
 	"io"
+	"reflect"
 )
 
 type record struct {
@@ -25,6 +27,17 @@ type RecordFile struct {
 	Hash            string
 	MetadataHash    string
 	TransactionsMap map[string]*hederaproto.TransactionID
+}
+
+func newRecordFromString(record string) (*record, error) {
+	decoded, err := base64.StdEncoding.DecodeString(record)
+	if err != nil {
+		return nil, err
+	}
+
+	buffer := bytes.NewReader(decoded)
+
+	return newRecord(buffer)
 }
 
 func newRecord(buffer *bytes.Reader) (*record, error) {
@@ -251,6 +264,173 @@ func CalculateV5FileHash(buffer *bytes.Reader) (string, error) {
 	return hex.EncodeToString(hash[:]), nil
 }
 
+func NewCompactRecordFile(recordFile map[string]interface{}) (*RecordFile, error) {
+	valid, err := verifyEndRunningHash(recordFile)
+	if err != nil {
+		return nil, err
+	}
+	if !valid {
+		return nil, errors.ErrorInvalidRecordFile
+	}
+	recordStream, ok := recordFile["record_stream_object"].(string)
+	if !ok {
+		return nil, errors.ErrorInvalidRecordFile
+	}
+
+	record, err := newRecordFromString(recordStream)
+	if err != nil {
+		return nil, err
+	}
+	rf := &RecordFile{
+		TransactionsMap: make(map[string]*hederaproto.TransactionID),
+	}
+
+	err = mapSuccessfulTransactions(rf.TransactionsMap, record.Record)
+	if err != nil {
+		return nil, err
+	}
+
+	headStr, ok := recordFile["head"].(string)
+	if !ok {
+		return nil, errors.ErrorInvalidRecordFile
+	}
+
+	h, err := base64.StdEncoding.DecodeString(headStr)
+	if err != nil {
+		return nil, errors.ErrorInvalidRecordFile
+	}
+
+	startRunningHashStr, ok := recordFile["start_running_hash_object"].(string)
+	if !ok {
+		return nil, errors.ErrorInvalidRecordFile
+	}
+	srh, err := base64.StdEncoding.DecodeString(startRunningHashStr)
+	if err != nil {
+		return nil, errors.ErrorInvalidRecordFile
+	}
+
+	endRunningHashStr, ok := recordFile["end_running_hash_object"].(string)
+	if !ok {
+		return nil, errors.ErrorInvalidRecordFile
+	}
+	erh, err := base64.StdEncoding.DecodeString(endRunningHashStr)
+	if err != nil {
+		return nil, errors.ErrorInvalidRecordFile
+	}
+
+	metadata := make([]byte, 0)
+	metadata = append(metadata, h...)
+	metadata = append(metadata, srh...)
+	metadata = append(metadata, erh...)
+
+	metadataHash := sha512.Sum384(metadata)
+	rf.MetadataHash = hex.EncodeToString(metadataHash[:])
+
+	return rf, nil
+}
+
+func verifyEndRunningHash(recordFile map[string]interface{}) (bool, error) {
+	startRunningHashStr, ok := recordFile["start_running_hash_object"].(string)
+	if !ok {
+		return false, errors.ErrorInvalidRecordFile
+	}
+
+	startRunningHash, err := NewHashFromString(startRunningHashStr)
+	if err != nil {
+		return false, err
+	}
+
+	header, err := startRunningHash.Header()
+	if err != nil {
+		return false, err
+	}
+
+	endRunningHashStr, ok := recordFile["end_running_hash_object"].(string)
+	if !ok {
+		return false, errors.ErrorInvalidRecordFile
+	}
+
+	hashesBefore, ok := recordFile["hashes_before"].([]interface{})
+	if !ok {
+		return false, errors.ErrorInvalidRecordFile
+	}
+
+	resultHash := startRunningHash.Hash
+	for _, hashBefore := range hashesBefore {
+		hashStr, ok := hashBefore.(string)
+		if !ok {
+			return false, errors.ErrorInvalidRecordFile
+		}
+
+		h, err := base64.StdEncoding.DecodeString(hashStr)
+		if err != nil {
+			return false, errors.ErrorInvalidRecordFile
+		}
+
+		concat := make([]byte, 0)
+		concat = append(concat, header...)
+		concat = append(concat, resultHash...)
+		concat = append(concat, header...)
+		concat = append(concat, h...)
+		runningHash := sha512.Sum384(concat)
+		resultHash = runningHash[:]
+	}
+
+	recordStream, ok := recordFile["record_stream_object"].(string)
+	if !ok {
+		return false, errors.ErrorInvalidRecordFile
+	}
+	rs, err := base64.StdEncoding.DecodeString(recordStream)
+	if err != nil {
+		return false, errors.ErrorInvalidRecordFile
+	}
+	rsHash := sha512.Sum384(rs)
+	rs = rsHash[:]
+
+	concat := make([]byte, 0)
+	concat = append(concat, header...)
+	concat = append(concat, resultHash...)
+	concat = append(concat, header...)
+	concat = append(concat, rs...)
+	runningHash := sha512.Sum384(concat)
+	resultHash = runningHash[:]
+
+	hashesAfter, ok := recordFile["hashes_after"].([]interface{})
+	if !ok {
+		return false, errors.ErrorInvalidRecordFile
+	}
+	for _, hashAfter := range hashesAfter {
+		hashStr, ok := hashAfter.(string)
+		if !ok {
+			return false, errors.ErrorInvalidRecordFile
+		}
+
+		h, err := base64.StdEncoding.DecodeString(hashStr)
+		if err != nil {
+			return false, errors.ErrorInvalidRecordFile
+		}
+
+		concat := make([]byte, 0)
+		concat = append(concat, header...)
+		concat = append(concat, resultHash...)
+		concat = append(concat, header...)
+		concat = append(concat, h...)
+		runningHash := sha512.Sum384(concat)
+		resultHash = runningHash[:]
+	}
+
+	endRunningHash, err := NewHashFromString(endRunningHashStr)
+	if err != nil {
+		return false, err
+	}
+
+	if !reflect.DeepEqual(endRunningHash.Hash, resultHash) {
+		return false, nil
+	}
+
+	return true, nil
+}
+
 func mapSuccessfulTransactions(txMap map[string]*hederaproto.TransactionID, txRecordRawBuffer []byte) error {
 	var tr hederaproto.TransactionRecord
 	err := proto.Unmarshal(txRecordRawBuffer, &tr)
@@ -260,6 +440,7 @@ func mapSuccessfulTransactions(txMap map[string]*hederaproto.TransactionID, txRe
 
 	transactionReceipt := tr.GetReceipt()
 	transactionStatus := transactionReceipt.GetStatus()
+	scheduled := transactionReceipt.ScheduleID != nil
 
 	if transactionStatus == hederaproto.ResponseCodeEnum_SUCCESS {
 		txId := tr.GetTransactionID()
@@ -267,7 +448,8 @@ func mapSuccessfulTransactions(txMap map[string]*hederaproto.TransactionID, txRe
 		txTimestamp := txId.GetTransactionValidStart()
 		nanos := fmt.Sprintf("%09d", txTimestamp.GetNanos())
 		parsedTx := fmt.Sprintf("%d_%d_%d_%d_%s", accId.GetShardNum(), accId.GetRealmNum(), accId.GetAccountNum(), txTimestamp.GetSeconds(), nanos)
-		txMap[parsedTx] = txId
+		key := fmt.Sprintf("%s-%t", parsedTx, scheduled)
+		txMap[key] = txId
 	}
 
 	return nil
