@@ -221,7 +221,7 @@ func NewV5RecordFile(buffer *bytes.Reader) (*RecordFile, error) {
 }
 
 func CalculatePreV5FileHash(buffer *bytes.Reader, version uint32) (string, error) {
-	if version == 1 {
+	if version == constants.RecordFileFormatV1 {
 		buf := new(bytes.Buffer)
 		_, err := buf.ReadFrom(buffer)
 		if err != nil {
@@ -385,8 +385,7 @@ func verifyEndRunningHash(recordFile map[string]interface{}) (bool, error) {
 		return false, errors.ErrorInvalidRecordFile
 	}
 	rsHash := sha512.Sum384(rs)
-	rs = rsHash[:]
-	resultHash = concatenateAndSha384(header, resultHash, header, rs)
+	resultHash = concatenateAndSha384(header, resultHash, header, rsHash[:])
 
 	hashesAfter, ok := recordFile["hashes_after"].([]interface{})
 	if !ok {
@@ -416,11 +415,7 @@ func verifyEndRunningHash(recordFile map[string]interface{}) (bool, error) {
 		return false, err
 	}
 
-	if !reflect.DeepEqual(endRunningHash.Hash, resultHash) {
-		return false, nil
-	}
-
-	return true, nil
+	return reflect.DeepEqual(endRunningHash.Hash, resultHash), nil
 }
 
 func mapSuccessfulTransactions(txMap map[string]*hederaproto.TransactionID, txRecordRawBuffer []byte) error {

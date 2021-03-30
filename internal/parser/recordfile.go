@@ -92,7 +92,9 @@ func checkType(recordFile interface{}) (recordFileType constants.RecordFileType,
 			return constants.InvalidRecordFile, err
 		}
 
-		validType := version == 1 || version == 2 || version == 5
+		validType := version == constants.RecordFileFormatV1 ||
+			version == constants.RecordFileFormatV2 ||
+			version == constants.RecordFileFormatV5
 		if validType {
 			return constants.FullRecordFile, nil
 		}
@@ -104,7 +106,7 @@ func checkType(recordFile interface{}) (recordFileType constants.RecordFileType,
 			return constants.InvalidRecordFile, err
 		}
 
-		validType := version == 5
+		validType := version == constants.RecordFileFormatV5
 		if validType {
 			return constants.CompactRecordFile, nil
 		}
