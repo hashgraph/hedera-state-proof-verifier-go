@@ -15,6 +15,14 @@ import (
 )
 
 func Verify(txId string, payload []byte) (bool, error) {
+	return verify(txId, false, payload)
+}
+
+func VerifyScheduled(txId string, payload []byte) (bool, error) {
+	return verify(txId, true, payload)
+}
+
+func verify(txId string, scheduled bool, payload []byte) (bool, error) {
 	regex := regexp.MustCompile("[.@\\-]")
 	txId = regex.ReplaceAllString(txId, "_")
 
@@ -37,7 +45,7 @@ func Verify(txId string, payload []byte) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	key := fmt.Sprintf("%s-%t", txId, false)
+	key := fmt.Sprintf("%s-%t", txId, scheduled)
 
 	if recordFile.TransactionsMap[key] == nil {
 		return false, errors.ErrorTransactionNotFound

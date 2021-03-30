@@ -272,6 +272,7 @@ func NewCompactRecordFile(recordFile map[string]interface{}) (*RecordFile, error
 	if !valid {
 		return nil, errors.ErrorInvalidRecordFile
 	}
+
 	recordStream, ok := recordFile["record_stream_object"].(string)
 	if !ok {
 		return nil, errors.ErrorInvalidRecordFile
@@ -290,6 +291,16 @@ func NewCompactRecordFile(recordFile map[string]interface{}) (*RecordFile, error
 		return nil, err
 	}
 
+	metadataHash, err := metadataHash(recordFile)
+	if err != nil {
+		return nil, err
+	}
+	rf.MetadataHash = hex.EncodeToString(metadataHash)
+
+	return rf, nil
+}
+
+func metadataHash(recordFile map[string]interface{}) ([]byte, error) {
 	headStr, ok := recordFile["head"].(string)
 	if !ok {
 		return nil, errors.ErrorInvalidRecordFile
@@ -324,9 +335,8 @@ func NewCompactRecordFile(recordFile map[string]interface{}) (*RecordFile, error
 	metadata = append(metadata, erh...)
 
 	metadataHash := sha512.Sum384(metadata)
-	rf.MetadataHash = hex.EncodeToString(metadataHash[:])
 
-	return rf, nil
+	return metadataHash[:], nil
 }
 
 func verifyEndRunningHash(recordFile map[string]interface{}) (bool, error) {
@@ -343,11 +353,6 @@ func verifyEndRunningHash(recordFile map[string]interface{}) (bool, error) {
 	header, err := startRunningHash.Header()
 	if err != nil {
 		return false, err
-	}
-
-	endRunningHashStr, ok := recordFile["end_running_hash_object"].(string)
-	if !ok {
-		return false, errors.ErrorInvalidRecordFile
 	}
 
 	hashesBefore, ok := recordFile["hashes_before"].([]interface{})
@@ -367,38 +372,27 @@ func verifyEndRunningHash(recordFile map[string]interface{}) (bool, error) {
 			return false, errors.ErrorInvalidRecordFile
 		}
 
-		concat := make([]byte, 0)
-		concat = append(concat, header...)
-		concat = append(concat, resultHash...)
-		concat = append(concat, header...)
-		concat = append(concat, h...)
-		runningHash := sha512.Sum384(concat)
-		resultHash = runningHash[:]
+		resultHash = concatenateAndSha384(header, resultHash, header, h)
 	}
 
 	recordStream, ok := recordFile["record_stream_object"].(string)
 	if !ok {
 		return false, errors.ErrorInvalidRecordFile
 	}
+
 	rs, err := base64.StdEncoding.DecodeString(recordStream)
 	if err != nil {
 		return false, errors.ErrorInvalidRecordFile
 	}
 	rsHash := sha512.Sum384(rs)
 	rs = rsHash[:]
-
-	concat := make([]byte, 0)
-	concat = append(concat, header...)
-	concat = append(concat, resultHash...)
-	concat = append(concat, header...)
-	concat = append(concat, rs...)
-	runningHash := sha512.Sum384(concat)
-	resultHash = runningHash[:]
+	resultHash = concatenateAndSha384(header, resultHash, header, rs)
 
 	hashesAfter, ok := recordFile["hashes_after"].([]interface{})
 	if !ok {
 		return false, errors.ErrorInvalidRecordFile
 	}
+
 	for _, hashAfter := range hashesAfter {
 		hashStr, ok := hashAfter.(string)
 		if !ok {
@@ -410,15 +404,13 @@ func verifyEndRunningHash(recordFile map[string]interface{}) (bool, error) {
 			return false, errors.ErrorInvalidRecordFile
 		}
 
-		concat := make([]byte, 0)
-		concat = append(concat, header...)
-		concat = append(concat, resultHash...)
-		concat = append(concat, header...)
-		concat = append(concat, h...)
-		runningHash := sha512.Sum384(concat)
-		resultHash = runningHash[:]
+		resultHash = concatenateAndSha384(header, resultHash, header, h)
 	}
 
+	endRunningHashStr, ok := recordFile["end_running_hash_object"].(string)
+	if !ok {
+		return false, errors.ErrorInvalidRecordFile
+	}
 	endRunningHash, err := NewHashFromString(endRunningHashStr)
 	if err != nil {
 		return false, err
@@ -453,4 +445,15 @@ func mapSuccessfulTransactions(txMap map[string]*hederaproto.TransactionID, txRe
 	}
 
 	return nil
+}
+
+func concatenateAndSha384(prevHeader, previous, currentHeader, current []byte) []byte {
+	concat := make([]byte, 0)
+	concat = append(concat, prevHeader...)
+	concat = append(concat, previous...)
+	concat = append(concat, currentHeader...)
+	concat = append(concat, current...)
+	runningHash := sha512.Sum384(concat)
+
+	return runningHash[:]
 }
