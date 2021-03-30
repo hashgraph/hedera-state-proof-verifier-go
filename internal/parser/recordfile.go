@@ -101,7 +101,12 @@ func checkType(recordFile interface{}) (recordFileType constants.RecordFileType,
 		return constants.InvalidRecordFile, nil
 	case map[string]interface{}:
 		record := recordFile.(map[string]interface{})
-		version, err := readVersion(record["head"].(string))
+		head, ok := record["head"].(string)
+		if !ok {
+			return constants.InvalidRecordFile, nil
+		}
+
+		version, err := readVersion(head)
 		if err != nil {
 			return constants.InvalidRecordFile, err
 		}
