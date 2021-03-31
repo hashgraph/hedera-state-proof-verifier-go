@@ -427,7 +427,7 @@ func mapSuccessfulTransactions(txMap map[string]*hederaproto.TransactionID, txRe
 
 	transactionReceipt := tr.GetReceipt()
 	transactionStatus := transactionReceipt.GetStatus()
-	scheduled := transactionReceipt.ScheduleID != nil
+	scheduled := tr.ScheduleRef != nil
 
 	if transactionStatus == hederaproto.ResponseCodeEnum_SUCCESS {
 		txId := tr.GetTransactionID()
