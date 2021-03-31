@@ -20,8 +20,19 @@ import "github.com/hashgraph/hedera-state-proof-verifier-go/stateproof"
 verified, err := stateproof.Verify(txnID, stateProof)
 ```
 
+### Verify scheduled transaction
+```go
+import "github.com/hashgraph/hedera-state-proof-verifier-go/stateproof"
+
+verified, err := stateproof.VerifyScheduled(txnID, stateProof)
+```
+
 ## Examples
 
 [V2 Record Stream State Proof Verification](examples/v2/main.go)
 
-[V5 Record Stream State Proof Verification](examples/v5/main.go)
+[V5 Record Stream State Proof Verification with Full Record File](examples/v5/main.go)
+
+[V5 Record Stream State Proof Verification with Compact Record File](examples/v5/compact/main.go)
+
+[V5 Record Stream State Proof Verification of Scheduled Transactions](examples/v5/compact/scheduled/main.go)

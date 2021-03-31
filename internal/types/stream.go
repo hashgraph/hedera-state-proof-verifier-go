@@ -28,3 +28,19 @@ func NewStream(buffer *bytes.Reader) (*Stream, error) {
 
 	return stream, nil
 }
+
+func (s *Stream) Header() ([]byte, error) {
+	buffer := bytes.NewBuffer(make([]byte, 0))
+
+	err := binary.Write(buffer, binary.LittleEndian, s.ClassId)
+	if err != nil {
+		return nil, err
+	}
+
+	err = binary.Write(buffer, binary.LittleEndian, s.ClassVersion)
+	if err != nil {
+		return nil, err
+	}
+
+	return buffer.Bytes(), nil
+}
