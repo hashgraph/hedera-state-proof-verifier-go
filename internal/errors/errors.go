@@ -16,6 +16,4 @@ var (
 	ErrorUnexpectedSignatureFileTypeDelimiter = errors.New("UNEXPECTED_SIGNATURE_FILE_TYPE_DELIMITER")
 	ErrorUnexpectedTypeDelimiter              = errors.New("UNEXPECTED_TYPE_DELIMITER")
 	ErrorUnsupportedRecordFileMarker          = errors.New("UNSUPPORTED_RECORD_FILE_MARKER")
-	ErrorVerifyMetadataSignature              = errors.New("VERIFY_METADATA_SIGNATURE")
-	ErrorVerifySignature                      = errors.New("VERIFY_SIGNATURE_FAIL")
 )

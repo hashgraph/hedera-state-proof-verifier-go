@@ -83,11 +83,11 @@ func verifySignatures(nodeIdPubKeyPairs map[string]string, signatureFiles map[st
 	for nodeId, sigFile := range signatureFiles {
 		pubKey := nodeIdPubKeyPairs[nodeId]
 		if !verifySignature(pubKey, sigFile.Hash, sigFile.Signature) {
-			return "", "", errors.ErrorVerifySignature
+			continue
 		}
 
 		if sigFile.MetadataHash != nil && !verifySignature(pubKey, sigFile.MetadataHash, sigFile.MetadataSignature) {
-			return "", "", errors.ErrorVerifyMetadataSignature
+			continue
 		}
 
 		hexHash := hex.EncodeToString(sigFile.Hash)

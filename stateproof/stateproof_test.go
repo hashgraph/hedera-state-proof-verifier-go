@@ -279,7 +279,7 @@ func TestVerificationInvalidSignatures(t *testing.T) {
 		}`)
 	valid, err := Verify(validV2RecordStreamTxnID, invalid)
 
-	assert.Equal(t, errors.ErrorVerifySignature, err)
+	assert.Equal(t, errors.ErrorHashesNotMatch, err)
 	assert.False(t, valid)
 }
 
