@@ -3,7 +3,7 @@ package types
 import (
 	"bytes"
 	"encoding/binary"
-	"github.com/limechain/hedera-state-proof-verifier-go/internal/constants"
+	"github.com/hashgraph/hedera-state-proof-verifier-go/internal/constants"
 )
 
 type Stream struct {
@@ -27,4 +27,20 @@ func NewStream(buffer *bytes.Reader) (*Stream, error) {
 	stream.BodyLength = constants.IntSize + constants.LongSize
 
 	return stream, nil
+}
+
+func (s *Stream) Header() ([]byte, error) {
+	buffer := bytes.NewBuffer(make([]byte, 0))
+
+	err := binary.Write(buffer, binary.LittleEndian, s.ClassId)
+	if err != nil {
+		return nil, err
+	}
+
+	err = binary.Write(buffer, binary.LittleEndian, s.ClassVersion)
+	if err != nil {
+		return nil, err
+	}
+
+	return buffer.Bytes(), nil
 }

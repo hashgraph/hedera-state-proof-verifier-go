@@ -2,13 +2,14 @@ package types
 
 import (
 	"encoding/json"
-	"github.com/limechain/hedera-state-proof-verifier-go/internal/errors"
+	"github.com/hashgraph/hedera-state-proof-verifier-go/internal/errors"
 )
 
 type StateProof struct {
-	RecordFile     string            `json:"record_file"`
+	RecordFile     interface{}       `json:"record_file"`
 	SignatureFiles map[string]string `json:"signature_files"`
 	AddressBooks   []string          `json:"address_books"`
+	Version        int64             `json:"version"`
 }
 
 func NewStateProof(payload []byte) (*StateProof, error) {
@@ -17,10 +18,11 @@ func NewStateProof(payload []byte) (*StateProof, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	if len(stateProof.SignatureFiles) < 2 {
 		return nil, errors.ErrorInvalidSignaturesLength
 	}
-	if stateProof.RecordFile == "" {
+	if stateProof.RecordFile == nil {
 		return nil, errors.ErrorInvalidRecordFile
 	}
 	if len(stateProof.AddressBooks) < 1 {
